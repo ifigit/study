@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AMKSS ICT Insights — Looker</title>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Google Sans","Roboto",sans-serif;background:#fff;color:#202124;font-size:13px;-webkit-font-smoothing:antialiased}
+:root{
+  --g-blue:#1A73E8;--g-blue-bg:#E8F0FE;--g-green:#34A853;--g-green-bg:#E6F4EA;
+  --g-red:#EA4335;--g-red-bg:#FCE8E6;--g-yellow:#FBBC04;--g-yellow-bg:#FEF7E0;
+  --g-teal:#00897B;--g-teal-bg:#E0F2F1;
+  --border:#DADCE0;--surface:#F8F9FA;--muted:#5F6368;--text:#202124;
+}
+/* ── SHELL ── */
+.lk-shell{display:none;min-height:100vh;flex-direction:row}
+.lk-shell.active{display:flex}
+
+/* ── SIDEBAR ── */
+.lk-sidebar{
+  width:240px;background:#fff;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;
+}
+.lk-brand{padding:20px 16px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.lk-brand img{width:36px;height:36px;object-fit:contain}
+.lk-brand-text .school{font-size:13px;font-weight:500;color:var(--text)}
+.lk-brand-text .sub{font-size:11px;color:var(--muted);margin-top:1px}
+.lk-user-block{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.lk-avatar{width:32px;height:32px;border-radius:50%;background:var(--g-blue-bg);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:var(--g-blue);flex-shrink:0}
+.lk-user-name{font-size:12px;font-weight:500;color:var(--text)}
+.lk-user-role{font-size:11px;color:var(--muted)}
+.lk-nav-section{padding:12px 0}
+.lk-nav-lbl{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.08em;padding:0 16px;margin-bottom:4px;text-transform:uppercase}
+.lk-nav-item{
+  display:flex;align-items:center;gap:10px;padding:8px 16px;
+  font-size:13px;color:var(--muted);cursor:pointer;border-radius:0;
+  border-left:3px solid transparent;transition:all .12s;
+}
+.lk-nav-item:hover{background:var(--surface);color:var(--text)}
+.lk-nav-item.active{color:var(--g-blue);background:var(--g-blue-bg);border-left-color:var(--g-blue);font-weight:500}
+.lk-nav-icon{font-size:16px;width:20px;flex-shrink:0}
+.lk-sidebar-foot{margin-top:auto;padding:12px 16px;border-top:1px solid var(--border)}
+.lk-signout{font-size:12px;color:var(--g-blue);cursor:pointer;display:flex;align-items:center;gap:6px}
+
+/* ── MAIN ── */
+.lk-main{flex:1;background:var(--surface);display:flex;flex-direction:column;overflow-y:auto}
+
+/* ── TOP BAR ── */
+.lk-topbar{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.lk-page-title{font-size:18px;font-weight:400;color:var(--text)}
+.lk-filter-bar{display:flex;gap:8px;align-items:center}
+.lk-filter-chip{
+  display:flex;align-items:center;gap:5px;padding:5px 12px;
+  border:1px solid var(--border);border-radius:24px;font-size:12px;
+  color:var(--muted);cursor:pointer;background:#fff;transition:all .12s;
+}
+.lk-filter-chip:hover{border-color:var(--g-blue);color:var(--g-blue)}
+.lk-filter-chip.active{border-color:var(--g-blue);background:var(--g-blue-bg);color:var(--g-blue);font-weight:500}
+.lk-refresh{font-size:11px;color:var(--muted);margin-left:8px}
+
+/* ── FILTER DROPDOWN ── */
+.lk-filter-wrap{position:relative}
+.lk-filter-menu{
+  position:absolute;top:calc(100% + 6px);left:0;min-width:180px;
+  background:#fff;border:1px solid var(--border);border-radius:8px;
+  box-shadow:0 4px 14px rgba(0,0,0,.12);padding:6px;z-index:50;display:none;
+}
+.lk-filter-menu.open{display:block}
+.lk-filter-opt{
+  padding:8px 10px;font-size:12.5px;color:var(--text);border-radius:5px;cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.lk-filter-opt:hover{background:var(--g-blue-bg);color:var(--g-blue)}
+.lk-filter-opt.sel{color:var(--g-blue);font-weight:500}
+.lk-filter-opt.sel::after{content:"✓";font-size:11px}
+.lk-toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:#202124;color:#fff;font-size:12.5px;padding:9px 16px;border-radius:6px;
+  box-shadow:0 4px 14px rgba(0,0,0,.2);opacity:0;pointer-events:none;
+  transition:opacity .18s,transform .18s;z-index:200;
+}
+.lk-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── CONTENT ── */
+.lk-content{padding:24px 28px;flex:1}
+.lk-section{margin-bottom:28px}
+.lk-section-title{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+
+/* ── METRIC TILES ── */
+.lk-metrics{display:grid;gap:0;margin-bottom:28px;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff}
+.lk-metrics-row{display:grid}
+.lk-metric{padding:20px 24px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
+.lk-metric:last-child{border-right:none}
+.lk-metric-lbl{font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:400}
+.lk-metric-val{font-size:32px;font-weight:300;color:var(--text);line-height:1;margin-bottom:4px}
+.lk-metric-trend{font-size:12px;display:flex;align-items:center;gap:4px}
+.lk-metric-trend.up{color:var(--g-green)}.lk-metric-trend.down{color:var(--g-red)}.lk-metric-trend.warn{color:#E37400}
+
+/* ── EXPLORE CARD ── */
+.lk-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:0;margin-bottom:16px;overflow:hidden}
+.lk-card-head{padding:14px 18px 0;display:flex;align-items:flex-start;justify-content:space-between}
+.lk-card-title{font-size:13px;font-weight:500;color:var(--text)}
+.lk-card-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.lk-card-body{padding:12px 18px 18px}
+.lk-card-menu{font-size:18px;color:var(--muted);cursor:pointer;line-height:1}
+
+/* ── GRID ── */
+.lk-grid{display:grid;gap:16px;margin-bottom:16px}
+.lk-g2{grid-template-columns:1fr 1fr}
+.lk-g3{grid-template-columns:1fr 1fr 1fr}
+.lk-gl{grid-template-columns:1.5fr 1fr}
+
+/* ── TABLE ── */
+.lk-table{width:100%;border-collapse:collapse;font-size:12px}
+.lk-table th{font-size:11px;font-weight:500;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border)}
+.lk-table td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text)}
+.lk-table tr:last-child td{border-bottom:none}
+.lk-table tr:hover td{background:var(--surface)}
+
+/* ── BADGE ── */
+.lk-badge{display:inline-flex;align-items:center;border-radius:24px;padding:3px 10px;font-size:11px;font-weight:500}
+.lk-g{background:var(--g-green-bg);color:#137333}
+.lk-r{background:var(--g-red-bg);color:#C5221F}
+.lk-y{background:var(--g-yellow-bg);color:#E37400}
+.lk-b{background:var(--g-blue-bg);color:#1557B0}
+.lk-t{background:var(--g-teal-bg);color:#00695C}
+.lk-n{background:var(--surface);color:var(--muted);border:1px solid var(--border)}
+
+/* ── BAR ── */
+.lk-bar-row{margin-bottom:10px}
+.lk-bar-lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px}
+.lk-bar-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.lk-bar-fill{height:100%;border-radius:3px}
+
+/* ── CHART WRAP ── */
+.chart-wrap{position:relative;width:100%}
+
+/* ── ALERT ROW ── */
+.lk-alert{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.lk-alert:last-child{border-bottom:none}
+.lk-alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.lk-alert-body{flex:1}
+.lk-alert-title{font-size:13px;font-weight:500;color:var(--text)}
+.lk-alert-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── PAGES ── */
+.lk-page{display:none}
+.lk-page.active{display:block}
+
+/* ── LOGIN ── */
+#lk-login{
+  min-height:100vh;background:#fff;
+  display:flex;align-items:center;justify-content:center;
+}
+.lk-login-wrap{width:420px}
+.lk-login-logo{text-align:center;margin-bottom:28px}
+.lk-login-logo img{width:56px;height:56px;object-fit:contain;margin-bottom:12px;display:block;margin:0 auto 12px}
+.lk-login-school{font-size:20px;font-weight:400;color:var(--text);margin-bottom:4px}
+.lk-login-sub{font-size:13px;color:var(--muted)}
+.lk-login-card{border:1px solid var(--border);border-radius:8px;padding:32px;margin-top:24px}
+.lk-login-h{font-size:24px;font-weight:400;color:var(--text);margin-bottom:6px}
+.lk-login-desc{font-size:13px;color:var(--muted);margin-bottom:24px}
+.lk-input-lbl{font-size:12px;color:var(--muted);margin-bottom:6px;display:block}
+.lk-input{width:100%;border:1px solid var(--border);border-radius:4px;padding:10px 12px;font-size:14px;font-family:inherit;color:var(--text);outline:none;margin-bottom:16px}
+.lk-input:focus{border-color:var(--g-blue);box-shadow:0 0 0 2px rgba(26,115,232,0.15)}
+.lk-persona-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px}
+.lk-persona{border:1px solid var(--border);border-radius:8px;padding:12px 8px;cursor:pointer;text-align:center;transition:all .12s;background:#fff}
+.lk-persona:hover{border-color:var(--g-blue);background:var(--g-blue-bg)}
+.lk-persona.sel{border-color:var(--g-blue);background:var(--g-blue-bg);border-width:2px}
+.lk-persona .p-icon{font-size:22px;display:block;margin-bottom:5px}
+.lk-persona .p-name{font-size:12px;font-weight:500;color:var(--text)}
+.lk-persona .p-role{font-size:11px;color:var(--muted);margin-top:2px}
+.lk-login-btn{width:100%;background:var(--g-blue);color:#fff;border:none;border-radius:4px;padding:11px;font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;transition:background .12s}
+.lk-login-btn:hover{background:#1557B0}
+.lk-login-hint{font-size:11px;color:var(--muted);margin-top:12px;text-align:center}
+/* Google branding strip */
+.goog-strip{display:flex;align-items:center;justify-content:flex-end;padding:8px 12px;border-top:1px solid var(--border);margin-top:20px}
+.goog-strip span{font-size:11px;color:var(--muted);margin-right:6px}
+.goog-g{font-size:18px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="lk-login">
+  <div class="lk-login-wrap">
+    <div class="lk-login-logo">
+      <img src="data:image/jpeg;base64,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" alt="AMKSS"/>
+      <div class="lk-login-school">Ang Mo Kio Secondary School</div>
+      <div class="lk-login-sub">ICT Insights · Looker Dashboard</div>
+    </div>
+    <div class="lk-login-card">
+      <div class="lk-login-h">Sign in</div>
+      <div class="lk-login-desc">Use your Google Workspace account</div>
+      <label class="lk-input-lbl">Email</label>
+      <input class="lk-input" id="lk-email" type="text" value="tanwl@amkss.edu.sg"/>
+      <label class="lk-input-lbl">Password</label>
+      <input class="lk-input" id="lk-pass" type="password" value="amkss2025"/>
+      <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:10px">I am a:</div>
+      <div class="lk-persona-grid">
+        <button class="lk-persona" id="lp-principal" onclick="lkSelectPersona('principal')">
+          <span class="p-icon">🏫</span><div class="p-name">School Leader</div><div class="p-role">Overview</div>
+        </button>
+        <button class="lk-persona sel" id="lp-teacher" onclick="lkSelectPersona('teacher')">
+          <span class="p-icon">📚</span><div class="p-name">Teacher</div><div class="p-role">My classes</div>
+        </button>
+        <button class="lk-persona" id="lp-ictmgr" onclick="lkSelectPersona('ictmgr')">
+          <span class="p-icon">🔧</span><div class="p-name">ICT Manager</div><div class="p-role">Operations</div>
+        </button>
+      </div>
+      <button class="lk-login-btn" onclick="lkLogin()">Sign in with Google Workspace</button>
+      <div class="lk-login-hint">Demo · ashraf / tanwl / rajan @amkss.edu.sg · amkss2025</div>
+      <div class="goog-strip"><span>Powered by</span><span class="goog-g">🔍</span><b style="font-size:13px;color:var(--muted)">Looker</b></div>
+    </div>
+  </div>
+</div>
+
+<!-- SHELL -->
+<div id="lk-shell" class="lk-shell">
+  <!-- SIDEBAR -->
+  <div class="lk-sidebar">
+    <div class="lk-brand">
+      <img id="lk-nav-logo" src="data:image/jpeg;base64,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" alt="AMKSS"/>
+      <div class="lk-brand-text">
+        <div class="school">AMKSS</div>
+        <div class="sub">ICT Insights</div>
+      </div>
+    </div>
+    <div class="lk-user-block">
+      <div class="lk-avatar" id="lk-avatar">TW</div>
+      <div>
+        <div class="lk-user-name" id="lk-user-name">Ms Tan Wei Ling</div>
+        <div class="lk-user-role" id="lk-user-role">Teacher · Mathematics</div>
+      </div>
+    </div>
+    <div id="lk-nav-principal" style="display:none">
+      <div class="lk-nav-section">
+        <div class="lk-nav-lbl">Dashboards</div>
+        <div class="lk-nav-item active" onclick="lkNav('lp-overview',this)"><span class="lk-nav-icon">📊</span>Overview</div>
+        <div class="lk-nav-item" onclick="lkNav('lp-m365',this)"><span class="lk-nav-icon">🔷</span>Microsoft 365</div>
+        <div class="lk-nav-item" onclick="lkNav('lp-google',this)"><span class="lk-nav-icon">🟢</span>Google Workspace</div>
+        <div class="lk-nav-item" onclick="lkNav('lp-ict',this)"><span class="lk-nav-icon">🌐</span>ICT Facilities</div>
+      </div>
+    </div>
+    <div id="lk-nav-teacher" style="display:none">
+      <div class="lk-nav-section">
+        <div class="lk-nav-lbl">My Dashboards</div>
+        <div class="lk-nav-item active" onclick="lkNav('lt-today',this)"><span class="lk-nav-icon">☀️</span>Today</div>
+        <div class="lk-nav-item" onclick="lkNav('lt-classes',this)"><span class="lk-nav-icon">📚</span>My Classes</div>
+        <div class="lk-nav-item" onclick="lkNav('lt-workload',this)"><span class="lk-nav-icon">📋</span>Workload</div>
+        <div class="lk-nav-item" onclick="lkNav('lt-ict',this)"><span class="lk-nav-icon">🖥️</span>ICT Status</div>
+      </div>
+    </div>
+    <div id="lk-nav-ictmgr" style="display:none">
+      <div class="lk-nav-section">
+        <div class="lk-nav-lbl">Operations</div>
+        <div class="lk-nav-item active" onclick="lkNav('li-queue',this)"><span class="lk-nav-icon">🎫</span>Ticket Queue</div>
+        <div class="lk-nav-item" onclick="lkNav('li-infra',this)"><span class="lk-nav-icon">🌐</span>Infrastructure</div>
+        <div class="lk-nav-item" onclick="lkNav('li-assets',this)"><span class="lk-nav-icon">💻</span>Assets & Licences</div>
+        <div class="lk-nav-item" onclick="lkNav('li-adoption',this)"><span class="lk-nav-icon">📊</span>Adoption Gaps</div>
+        <div class="lk-nav-item" onclick="lkNav('li-watch',this)"><span class="lk-nav-icon">👁</span>School Leader Watch</div>
+      </div>
+    </div>
+    <div class="lk-sidebar-foot">
+      <div class="lk-signout" onclick="lkLogout()">↩ Sign out</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="lk-main">
+    <div class="lk-topbar">
+      <div class="lk-page-title" id="lk-page-title">Overview</div>
+      <div class="lk-filter-bar" id="lk-filter-bar">
+        <div class="lk-filter-wrap">
+          <div class="lk-filter-chip active" onclick="lkToggleFilter(event,'term')" id="lk-chip-term">Term 2 2025 ▾</div>
+          <div class="lk-filter-menu" id="lk-menu-term">
+            <div class="lk-filter-opt sel" onclick="lkPickFilter('term','Term 2 2025',this)">Term 2 2025</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('term','Term 1 2025',this)">Term 1 2025</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('term','Term 4 2024',this)">Term 4 2024</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('term','Term 3 2024',this)">Term 3 2024</div>
+          </div>
+        </div>
+        <div class="lk-filter-wrap">
+          <div class="lk-filter-chip" onclick="lkToggleFilter(event,'class')" id="lk-chip-class">All Classes ▾</div>
+          <div class="lk-filter-menu" id="lk-menu-class">
+            <div class="lk-filter-opt sel" onclick="lkPickFilter('class','All Classes',this)">All Classes</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('class','Sec 1A',this)">Sec 1A</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('class','Sec 1B',this)">Sec 1B</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('class','Sec 2A',this)">Sec 2A</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('class','Sec 2B',this)">Sec 2B</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('class','Sec 2E',this)">Sec 2E</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('class','Sec 3A',this)">Sec 3A</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('class','Sec 3E',this)">Sec 3E</div>
+          </div>
+        </div>
+        <div class="lk-filter-wrap">
+          <div class="lk-filter-chip" onclick="lkToggleFilter(event,'room')" id="lk-chip-room">All Rooms ▾</div>
+          <div class="lk-filter-menu" id="lk-menu-room">
+            <div class="lk-filter-opt sel" onclick="lkPickFilter('room','All Rooms',this)">All Rooms</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('room','Block A — L1 to L3',this)">Block A — L1 to L3</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('room','Block B — L1 to L4',this)">Block B — L1 to L4</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('room','Computer Lab 1',this)">Computer Lab 1</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('room','Computer Lab 2',this)">Computer Lab 2</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('room','Science Labs',this)">Science Labs</div>
+          </div>
+        </div>
+        <div class="lk-filter-wrap">
+          <div class="lk-filter-chip" onclick="lkToggleFilter(event,'platform')" id="lk-chip-platform">All Platforms ▾</div>
+          <div class="lk-filter-menu" id="lk-menu-platform">
+            <div class="lk-filter-opt sel" onclick="lkPickFilter('platform','All Platforms',this)">All Platforms</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('platform','Microsoft 365',this)">Microsoft 365</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('platform','Google Workspace',this)">Google Workspace</div>
+            <div class="lk-filter-opt" onclick="lkPickFilter('platform','SLS',this)">SLS</div>
+          </div>
+        </div>
+        <div class="lk-refresh" id="lk-refresh-lbl">Refreshed: 07:45 today</div>
+      </div>
+    </div>
+
+    <div class="lk-content">
+
+      <!-- ══ PRINCIPAL PAGES ══ -->
+      <!-- Overview -->
+      <div id="lp-overview" class="lk-page active">
+        <div class="lk-metrics" style="margin-bottom:24px">
+          <div class="lk-metrics-row" style="grid-template-columns:repeat(6,1fr)">
+            <div class="lk-metric"><div class="lk-metric-lbl">ICT Readiness Score</div><div class="lk-metric-val" style="color:var(--g-blue)">83</div><div class="lk-metric-trend warn">▲ +5 this term · target 85</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Teacher Tool Adoption</div><div class="lk-metric-val">86<span style="font-size:16px">%</span></div><div class="lk-metric-trend up">▲ +8% vs last term</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Student Engagement</div><div class="lk-metric-val" id="lk-engagement-val">88<span style="font-size:16px">%</span></div><div class="lk-metric-trend up" id="lk-engagement-trend">▲ +4% this month</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Network Uptime MTD</div><div class="lk-metric-val" style="color:var(--g-green)">99.7<span style="font-size:14px">%</span></div><div class="lk-metric-trend up">▲ above 99.5% SLA</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Devices EOL</div><div class="lk-metric-val" style="color:var(--g-red)">14</div><div class="lk-metric-trend down">▼ of 100 · procure now</div></div>
+            <div class="lk-metric" style="border-right:none"><div class="lk-metric-lbl">Idle M365 Licences</div><div class="lk-metric-val" style="color:#E37400">4</div><div class="lk-metric-trend warn">► review with HR</div></div>
+          </div>
+        </div>
+        <div class="lk-grid lk-gl">
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Teacher Tool Adoption Trend</div><div class="lk-card-sub">Weekly active users % · M365 + Google Workspace</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body"><div class="chart-wrap" style="height:200px"><canvas id="lk-adopt-chart" role="img" aria-label="Teacher adoption trend">W1–W8 weekly adoption percentages</canvas></div></div></div>
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Device Fleet Health</div><div class="lk-card-sub">100 devices total</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body"><div class="chart-wrap" style="height:200px"><canvas id="lk-device-chart" role="img" aria-label="Device health donut">Healthy 58%, Ageing 28%, EOL 14%</canvas></div></div></div>
+        </div>
+        <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Action Items</div><div class="lk-card-sub" id="lk-actionitems-sub">Flagged for school leader review</div></div><div class="lk-card-menu">⋮</div></div>
+          <div class="lk-card-body" id="lk-actionitems-body">
+            <div class="lk-alert"><div class="lk-alert-dot" style="background:var(--g-red)"></div><div class="lk-alert-body"><div class="lk-alert-title">14 devices end-of-life — procurement needed</div><div class="lk-alert-sub">Impact: −3 pts on ICT Readiness Score. Raise procurement request.</div></div><span class="lk-badge lk-r">Critical</span></div>
+            <div class="lk-alert"><div class="lk-alert-dot" style="background:#E37400"></div><div class="lk-alert-body"><div class="lk-alert-title">Sec 2B student engagement 79% — below 80% threshold</div><div class="lk-alert-sub">Investigate device access or login barriers for this class.</div></div><span class="lk-badge lk-y">Moderate</span></div>
+            <div class="lk-alert"><div class="lk-alert-dot" style="background:#E37400"></div><div class="lk-alert-body"><div class="lk-alert-title">SharePoint adoption at 52% — CPD session recommended</div><div class="lk-alert-sub">Below 70% target. Schedule staff training with ICT Manager.</div></div><span class="lk-badge lk-y">Moderate</span></div>
+            <div class="lk-alert"><div class="lk-alert-dot" style="background:var(--g-green)"></div><div class="lk-alert-body"><div class="lk-alert-title">May network uptime 99.7% — April recovery confirmed</div><div class="lk-alert-sub">Zone 1B incident resolved. SLA back on track.</div></div><span class="lk-badge lk-g">Resolved</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- M365 -->
+      <div id="lp-m365" class="lk-page">
+        <div class="lk-metrics" style="margin-bottom:24px">
+          <div class="lk-metrics-row" style="grid-template-columns:repeat(4,1fr)">
+            <div class="lk-metric"><div class="lk-metric-lbl">Licensed Teachers</div><div class="lk-metric-val">48<span style="font-size:16px">/50</span></div><div class="lk-metric-trend down">▼ 2 unactivated</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Outlook Adoption</div><div class="lk-metric-val">91<span style="font-size:16px">%</span></div><div class="lk-metric-trend up">▲ best-performing app</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">OneDrive Adoption</div><div class="lk-metric-val">74<span style="font-size:16px">%</span></div><div class="lk-metric-trend up">▲ +6% this term</div></div>
+            <div class="lk-metric" style="border-right:none"><div class="lk-metric-lbl">Idle Licences &gt;30d</div><div class="lk-metric-val" style="color:var(--g-red)">4</div><div class="lk-metric-trend down">▼ review needed</div></div>
+          </div>
+        </div>
+        <div class="lk-grid lk-g2">
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">App Adoption by Tool</div><div class="lk-card-sub">% of teachers active in past 30 days</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body"><div class="chart-wrap" style="height:210px"><canvas id="lk-app-chart" role="img" aria-label="M365 app adoption">Teams 88%, OneDrive 74%, Outlook 91%, SharePoint 52%, Forms 45%, OneNote 38%</canvas></div></div></div>
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">OneDrive Storage — Top Accounts</div><div class="lk-card-sub">Advisory threshold at 70%</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body">
+            <div class="lk-bar-row"><div class="lk-bar-lbl"><span>T. Chan</span><span style="color:var(--g-red);font-weight:500">88%</span></div><div class="lk-bar-track"><div class="lk-bar-fill" style="width:88%;background:var(--g-red)"></div></div></div>
+            <div class="lk-bar-row"><div class="lk-bar-lbl"><span>T. Lim</span><span style="color:#E37400;font-weight:500">72%</span></div><div class="lk-bar-track"><div class="lk-bar-fill" style="width:72%;background:#FBBC04"></div></div></div>
+            <div class="lk-bar-row"><div class="lk-bar-lbl"><span>T. Ng</span><span style="color:#E37400;font-weight:500">65%</span></div><div class="lk-bar-track"><div class="lk-bar-fill" style="width:65%;background:#FBBC04"></div></div></div>
+            <div class="lk-bar-row"><div class="lk-bar-lbl"><span>T. Tan</span><span style="color:var(--g-green);font-weight:500">54%</span></div><div class="lk-bar-track"><div class="lk-bar-fill" style="width:54%;background:var(--g-green)"></div></div></div>
+            <div class="lk-bar-row"><div class="lk-bar-lbl"><span>T. Lee</span><span style="color:var(--g-green);font-weight:500">48%</span></div><div class="lk-bar-track"><div class="lk-bar-fill" style="width:48%;background:var(--g-green)"></div></div></div>
+            <div class="lk-bar-row"><div class="lk-bar-lbl"><span>T. Koh</span><span style="color:var(--g-green);font-weight:500">41%</span></div><div class="lk-bar-track"><div class="lk-bar-fill" style="width:41%;background:var(--g-green)"></div></div></div>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- Google Workspace -->
+      <div id="lp-google" class="lk-page">
+        <div class="lk-metrics" style="margin-bottom:24px">
+          <div class="lk-metrics-row" style="grid-template-columns:repeat(4,1fr)">
+            <div class="lk-metric"><div class="lk-metric-lbl">Student Login Rate</div><div class="lk-metric-val">88<span style="font-size:16px">%</span></div><div class="lk-metric-trend up">▲ +4% this month</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">On-Time Submissions</div><div class="lk-metric-val">89<span style="font-size:16px">%</span></div><div class="lk-metric-trend up">▲ +2% this month</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Avg Tasks/Student/Week</div><div class="lk-metric-val">61</div><div class="lk-metric-trend warn">► stable</div></div>
+            <div class="lk-metric" style="border-right:none"><div class="lk-metric-lbl">Classes Below 80%</div><div class="lk-metric-val" style="color:var(--g-red)">1</div><div class="lk-metric-trend down">▼ Sec 2B flagged</div></div>
+          </div>
+        </div>
+        <div class="lk-grid lk-g2">
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Classroom Activity</div><div class="lk-card-sub" id="lk-classroom-sub">Assigned vs Submitted vs On-Time · Jan–May</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body"><div class="chart-wrap" style="height:210px"><canvas id="lk-classroom-chart" role="img" aria-label="Classroom activity grouped bar">Monthly classroom activity breakdown</canvas></div></div></div>
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Class Engagement</div><div class="lk-card-sub">Login · Task completion · Collaboration</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body">
+            <table class="lk-table">
+              <thead><tr><th>Class</th><th>Login</th><th>Tasks</th><th>Collab</th><th>Status</th></tr></thead>
+              <tbody id="lk-engagement-tbody">
+                <tr data-class="Sec 2A"><td>Sec 2A</td><td>96%</td><td>91%</td><td>80%</td><td><span class="lk-badge lk-g">Good</span></td></tr>
+                <tr data-class="Sec 3A"><td>Sec 3A</td><td>91%</td><td>85%</td><td>76%</td><td><span class="lk-badge lk-g">Good</span></td></tr>
+                <tr data-class="Sec 1A"><td>Sec 1A</td><td>94%</td><td>88%</td><td>72%</td><td><span class="lk-badge lk-g">Good</span></td></tr>
+                <tr data-class="Sec 1B"><td>Sec 1B</td><td>88%</td><td>82%</td><td>68%</td><td><span class="lk-badge lk-y">Monitor</span></td></tr>
+                <tr data-class="Sec 3B"><td>Sec 3B</td><td>85%</td><td>78%</td><td>64%</td><td><span class="lk-badge lk-y">Monitor</span></td></tr>
+                <tr data-class="Sec 2B" style="font-weight:500;color:var(--g-red)"><td style="font-weight:500;color:var(--g-red)">Sec 2B</td><td style="color:var(--g-red);font-weight:500">79%</td><td style="color:var(--g-red);font-weight:500">70%</td><td style="color:var(--g-red);font-weight:500">55%</td><td><span class="lk-badge lk-r">Investigate</span></td></tr>
+              </tbody>
+            </table>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- ICT Facilities -->
+      <div id="lp-ict" class="lk-page">
+        <div class="lk-metrics" style="margin-bottom:24px">
+          <div class="lk-metrics-row" style="grid-template-columns:repeat(4,1fr)">
+            <div class="lk-metric"><div class="lk-metric-lbl">Network Uptime MTD</div><div class="lk-metric-val" style="color:var(--g-green)">99.7<span style="font-size:14px">%</span></div><div class="lk-metric-trend up">▲ SLA 99.5% — met</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Open Incidents</div><div class="lk-metric-val">3</div><div class="lk-metric-trend up">▲ down from 9 in Apr</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">EOL Devices</div><div class="lk-metric-val" style="color:var(--g-red)">14</div><div class="lk-metric-trend down">▼ of 100 · procure now</div></div>
+            <div class="lk-metric" style="border-right:none"><div class="lk-metric-lbl">Avg Repair Turnaround</div><div class="lk-metric-val">2.1<span style="font-size:16px">d</span></div><div class="lk-metric-trend up">▲ −0.4d vs last term</div></div>
+          </div>
+        </div>
+        <div class="lk-grid lk-g2">
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Network Uptime</div><div class="lk-card-sub">Monthly % vs 99.5% SLA target</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body"><div class="chart-wrap" style="height:190px"><canvas id="lk-uptime-chart" role="img" aria-label="Network uptime trend">Monthly uptime with SLA line</canvas></div></div></div>
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Incident Volume</div><div class="lk-card-sub">Total incidents per month</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body"><div class="chart-wrap" style="height:190px"><canvas id="lk-incident-chart" role="img" aria-label="Incident count per month">Jan 4, Feb 7, Mar 2, Apr 9, May 3</canvas></div></div></div>
+        </div>
+      </div>
+
+      <!-- ══ TEACHER PAGES ══ -->
+      <div id="lt-today" class="lk-page">
+        <div class="lk-metrics" style="margin-bottom:24px">
+          <div class="lk-metrics-row" style="grid-template-columns:repeat(4,1fr)">
+            <div class="lk-metric"><div class="lk-metric-lbl">Submission Rate</div><div class="lk-metric-val">89<span style="font-size:16px">%</span></div><div class="lk-metric-trend up">▲ this week</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Students Flagged</div><div class="lk-metric-val" style="color:var(--g-red)">4</div><div class="lk-metric-trend down">▼ follow-up needed</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Tasks Due Today</div><div class="lk-metric-val" style="color:var(--g-red)">2</div><div class="lk-metric-trend down">▼ mark + return feedback</div></div>
+            <div class="lk-metric" style="border-right:none"><div class="lk-metric-lbl">Room Issues Today</div><div class="lk-metric-val" style="color:#E37400">2</div><div class="lk-metric-trend warn">► P5 WiFi · P7 projector</div></div>
+          </div>
+        </div>
+        <div style="background:#FEF7E0;border:1px solid #FBBC04;border-radius:8px;padding:14px 18px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:13px;font-weight:500;color:#7A4F00">2 room issues before class today</div>
+            <div style="font-size:12px;color:#935600;margin-top:3px">P5 · 1B-03 · WiFi slow — report or use mobile hotspot &nbsp;·&nbsp; P7 · 3A-01 · Projector fault — collect spare from ICT Room B02</div>
+          </div>
+          <span class="lk-badge lk-y">Action needed</span>
+        </div>
+        <div class="lk-grid lk-g2">
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Today's Schedule — Room ICT Status</div><div class="lk-card-sub">Checked at 07:30 · refreshes every 30 min</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body">
+            <table class="lk-table">
+              <thead><tr><th>Period</th><th>Class</th><th>Room</th><th>Network</th><th>Projector</th><th>Devices</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>P1 07:30</td><td>3E Maths</td><td>3E-02</td><td><span class="lk-badge lk-g">OK</span></td><td><span class="lk-badge lk-g">OK</span></td><td>38</td><td><span class="lk-badge lk-g">Ready</span></td></tr>
+                <tr><td>P3 09:30</td><td>2A Maths</td><td>2A-01</td><td><span class="lk-badge lk-g">OK</span></td><td><span class="lk-badge lk-g">OK</span></td><td>36</td><td><span class="lk-badge lk-g">Ready</span></td></tr>
+                <tr><td>P5 11:30</td><td>1B Maths</td><td>1B-03</td><td><span class="lk-badge lk-y">Slow</span></td><td><span class="lk-badge lk-g">OK</span></td><td>36</td><td><span class="lk-badge lk-y">Issue</span></td></tr>
+                <tr><td>P7 14:00</td><td>3A Maths</td><td>3A-01</td><td><span class="lk-badge lk-g">OK</span></td><td><span class="lk-badge lk-r">Fault</span></td><td>37</td><td><span class="lk-badge lk-y">Issue</span></td></tr>
+              </tbody>
+            </table>
+          </div></div>
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Students Needing Attention</div><div class="lk-card-sub">Across all your classes this week</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body">
+            <div class="lk-alert"><div class="lk-alert-dot" style="background:var(--g-red)"></div><div class="lk-alert-body"><div class="lk-alert-title">Jun Wei — 1B Maths</div><div class="lk-alert-sub">3 missed submissions this week</div></div><span class="lk-badge lk-r">High</span></div>
+            <div class="lk-alert"><div class="lk-alert-dot" style="background:var(--g-red)"></div><div class="lk-alert-body"><div class="lk-alert-title">Ravi K. — 1B Maths</div><div class="lk-alert-sub">No activity for 9 days</div></div><span class="lk-badge lk-r">High</span></div>
+            <div class="lk-alert"><div class="lk-alert-dot" style="background:#FBBC04"></div><div class="lk-alert-body"><div class="lk-alert-title">Sarah T. — 1B Maths</div><div class="lk-alert-sub">Login fewer than 2× this week</div></div><span class="lk-badge lk-y">Watch</span></div>
+            <div class="lk-alert"><div class="lk-alert-dot" style="background:#FBBC04"></div><div class="lk-alert-body"><div class="lk-alert-title">Kai Xin — 3E Maths</div><div class="lk-alert-sub">Score dropped 18 points from last assessment</div></div><span class="lk-badge lk-y">Watch</span></div>
+          </div></div>
+        </div>
+      </div>
+
+      <div id="lt-classes" class="lk-page">
+        <div class="lk-metrics" style="margin-bottom:24px">
+          <div class="lk-metrics-row" style="grid-template-columns:repeat(4,1fr)">
+            <div class="lk-metric"><div class="lk-metric-lbl">3A Maths — Avg Score</div><div class="lk-metric-val" style="color:var(--g-green)">85</div><div class="lk-metric-trend up">▲ submit 97%</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">2A Maths — Avg Score</div><div class="lk-metric-val">81</div><div class="lk-metric-trend up">▲ submit 94%</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">3E Maths — Avg Score</div><div class="lk-metric-val">72</div><div class="lk-metric-trend warn">▲ submit 89%</div></div>
+            <div class="lk-metric" style="border-right:none"><div class="lk-metric-lbl">1B Maths — Avg Score</div><div class="lk-metric-val" style="color:var(--g-red)">64</div><div class="lk-metric-trend down">▼ submit 78%</div></div>
+          </div>
+        </div>
+        <div class="lk-grid lk-g2">
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Submission Rate Trend</div><div class="lk-card-sub">All classes · last 8 weeks</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body"><div class="chart-wrap" style="height:190px"><canvas id="lk-submit-chart" role="img" aria-label="Submission trend">W1-W8 submission rates</canvas></div></div></div>
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Class Comparison</div><div class="lk-card-sub">Avg score vs submission %</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body"><div class="chart-wrap" style="height:190px"><canvas id="lk-compare-chart" role="img" aria-label="Class comparison">4 classes scored and submitted</canvas></div></div></div>
+        </div>
+      </div>
+
+      <div id="lt-workload" class="lk-page">
+        <div class="lk-metrics" style="margin-bottom:24px">
+          <div class="lk-metrics-row" style="grid-template-columns:repeat(4,1fr)">
+            <div class="lk-metric"><div class="lk-metric-lbl">Items to Mark</div><div class="lk-metric-val" style="color:var(--g-red)">12</div><div class="lk-metric-trend down">▼ due this week</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Tasks Due This Week</div><div class="lk-metric-val">4</div><div class="lk-metric-trend down">▼ 2 due today</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">OneDrive Storage</div><div class="lk-metric-val">68<span style="font-size:14px">GB</span></div><div class="lk-metric-trend warn">► 32 GB remaining</div></div>
+            <div class="lk-metric" style="border-right:none"><div class="lk-metric-lbl">Pending Feedback</div><div class="lk-metric-val">3</div><div class="lk-metric-trend down">▼ return to students</div></div>
+          </div>
+        </div>
+        <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Task List</div><div class="lk-card-sub">Marking, prep, admin — sorted by due date</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body">
+          <table class="lk-table">
+            <thead><tr><th>Task</th><th>Class</th><th>Due</th><th>Priority</th></tr></thead>
+            <tbody>
+              <tr><td>Mark 3E Maths Quiz #4</td><td>3E Maths</td><td>Today</td><td><span class="lk-badge lk-r">High</span></td></tr>
+              <tr><td>Return feedback on Assignment 3</td><td>1B Maths</td><td>Today</td><td><span class="lk-badge lk-r">High</span></td></tr>
+              <tr><td>Upload Algebra worksheet</td><td>2A Maths</td><td>Tomorrow</td><td><span class="lk-badge lk-y">Medium</span></td></tr>
+              <tr><td>Prepare 1B remedial activity</td><td>1B Maths</td><td>Friday</td><td><span class="lk-badge lk-y">Medium</span></td></tr>
+              <tr><td>Update Google Classroom Week 9</td><td>All</td><td>Next Mon</td><td><span class="lk-badge lk-n">Low</span></td></tr>
+              <tr><td>Submit PD reflection form</td><td>—</td><td>Next Mon</td><td><span class="lk-badge lk-n">Low</span></td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </div>
+
+      <div id="lt-ict" class="lk-page">
+        <div class="lk-grid lk-g2">
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Venue Availability Today</div><div class="lk-card-sub">Check before booking</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body">
+            <table class="lk-table">
+              <thead><tr><th>Venue</th><th>Free Periods</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>Computer Lab 1</td><td>P2, P4, P8</td><td><span class="lk-badge lk-g">Available</span></td></tr>
+                <tr><td>Computer Lab 2</td><td>P1, P3</td><td><span class="lk-badge lk-g">Available</span></td></tr>
+                <tr><td>AV Room</td><td>P5, P6</td><td><span class="lk-badge lk-g">Available</span></td></tr>
+                <tr><td>Media Lab</td><td>—</td><td><span class="lk-badge lk-r">Fully booked</span></td></tr>
+              </tbody>
+            </table>
+          </div></div>
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Report an ICT Issue</div><div class="lk-card-sub">ICT team responds within 2 hours</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body">
+            <table class="lk-table">
+              <thead><tr><th>Issue type</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>Projector not working</td><td><span class="lk-badge lk-b" style="cursor:pointer">Report →</span></td></tr>
+                <tr><td>WiFi slow / not connecting</td><td><span class="lk-badge lk-b" style="cursor:pointer">Report →</span></td></tr>
+                <tr><td>Device won't power on</td><td><span class="lk-badge lk-b" style="cursor:pointer">Report →</span></td></tr>
+                <tr><td>Other issue</td><td><span class="lk-badge lk-b" style="cursor:pointer">Submit →</span></td></tr>
+              </tbody>
+            </table>
+            <div style="font-size:11px;color:var(--muted);margin-top:10px">0 open tickets · avg response 1.8h</div>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- ══ ICT MANAGER PAGES ══ -->
+      <div id="li-queue" class="lk-page">
+        <div class="lk-metrics" style="margin-bottom:24px">
+          <div class="lk-metrics-row" style="grid-template-columns:repeat(6,1fr)">
+            <div class="lk-metric"><div class="lk-metric-lbl">Open Tickets</div><div class="lk-metric-val" style="color:var(--g-red)">7</div><div class="lk-metric-trend down">▼ 3 SLA at risk</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Avg Resolution</div><div class="lk-metric-val">3.4<span style="font-size:14px">h</span></div><div class="lk-metric-trend down">▼ target &lt;2h</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Network Uptime</div><div class="lk-metric-val" style="color:var(--g-green)">99.7<span style="font-size:14px">%</span></div><div class="lk-metric-trend up">▲ above SLA</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Rooms with Issues</div><div class="lk-metric-val" style="color:#E37400">2</div><div class="lk-metric-trend warn">► resolve before P5</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">EOL Devices</div><div class="lk-metric-val" style="color:var(--g-red)">14</div><div class="lk-metric-trend down">▼ procure now</div></div>
+            <div class="lk-metric" style="border-right:none"><div class="lk-metric-lbl">Idle Licences</div><div class="lk-metric-val" style="color:#E37400">4</div><div class="lk-metric-trend warn">► review</div></div>
+          </div>
+        </div>
+        <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Active Ticket Queue</div><div class="lk-card-sub">Sorted by SLA risk · refreshed every 5 min</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body">
+          <table class="lk-table">
+            <thead><tr><th>#</th><th>Issue</th><th>Source</th><th>Class impact</th><th>SLA remaining</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td style="font-size:11px;color:var(--muted)">#1042</td><td><div style="font-size:12px;font-weight:500">Projector fault — Room 3A-01</div><div style="font-size:11px;color:var(--muted)">P7 3A Maths in 4h · Ms Tan</div></td><td><span class="lk-badge lk-r">Teacher</span></td><td><span class="lk-badge lk-r">P7 at risk</span></td><td style="font-size:12px;color:var(--g-red);font-weight:500">1.5h left</td><td><span class="lk-badge lk-y">In progress</span></td></tr>
+              <tr><td style="font-size:11px;color:var(--muted)">#1041</td><td><div style="font-size:12px;font-weight:500">WiFi degraded — Zone 1B</div><div style="font-size:11px;color:var(--muted)">System detected 06:45 · Ms Tan P5</div></td><td><span class="lk-badge lk-b">System</span></td><td><span class="lk-badge lk-y">P5 degraded</span></td><td style="font-size:12px;color:var(--g-red);font-weight:500">Overdue</td><td><span class="lk-badge lk-r">Overdue</span></td></tr>
+              <tr><td style="font-size:11px;color:var(--muted)">#1040</td><td><div style="font-size:12px;font-weight:500">Network down — Staff Room</div><div style="font-size:11px;color:var(--muted)">System detected 07:10</div></td><td><span class="lk-badge lk-b">System</span></td><td><span class="lk-badge lk-n">Staff only</span></td><td style="font-size:12px;color:var(--g-red);font-weight:500">Overdue</td><td><span class="lk-badge lk-r">Overdue</span></td></tr>
+              <tr><td style="font-size:11px;color:var(--muted)">#1039</td><td><div style="font-size:12px;font-weight:500">Device won't power on — Comp Lab 1</div><div style="font-size:11px;color:var(--muted)">Reported 08:20</div></td><td><span class="lk-badge lk-r">Teacher</span></td><td><span class="lk-badge lk-g">No impact</span></td><td style="font-size:12px;color:#E37400;font-weight:500">4h left</td><td><span class="lk-badge lk-y">In progress</span></td></tr>
+              <tr><td style="font-size:11px;color:var(--muted)">#1038</td><td><div style="font-size:12px;font-weight:500">OneDrive quota — T. Chan 88%</div><div style="font-size:11px;color:var(--muted)">System flagged</div></td><td><span class="lk-badge lk-b">System</span></td><td><span class="lk-badge lk-g">No impact</span></td><td style="font-size:12px;color:var(--muted)">24h</td><td><span class="lk-badge lk-n">Pending</span></td></tr>
+              <tr><td style="font-size:11px;color:var(--muted)">#1036</td><td><div style="font-size:12px;font-weight:500">Sec 2B engagement 79% — investigate</div><div style="font-size:11px;color:var(--muted)">School Leader flagged</div></td><td><span class="lk-badge lk-r">School Leader</span></td><td><span class="lk-badge lk-y">Student impact</span></td><td style="font-size:12px;color:var(--muted)">This week</td><td><span class="lk-badge lk-b">Investigate</span></td></tr>
+            </tbody>
+          </table>
+        </div></div>
+        <div class="lk-grid lk-g2">
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Resolution Time Trend</div><div class="lk-card-sub">Monthly avg vs 2h target</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body"><div class="chart-wrap" style="height:175px"><canvas id="lk-restime-chart" role="img" aria-label="Resolution time trend">Jan-May resolution time with 2h target</canvas></div></div></div>
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Tickets by Category</div><div class="lk-card-sub">Last 30 days</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body"><div class="chart-wrap" style="height:175px"><canvas id="lk-cat-chart" role="img" aria-label="Ticket category donut">Network 32%, Devices 28%, Projectors 18%, Software 14%, Other 8%</canvas></div></div></div>
+        </div>
+      </div>
+
+      <div id="li-infra" class="lk-page">
+        <div class="lk-grid lk-g2">
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Network Uptime</div><div class="lk-card-sub">Monthly % vs 99.5% SLA</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body"><div class="chart-wrap" style="height:190px"><canvas id="lk-ict-uptime-chart" role="img" aria-label="Network uptime trend">Monthly uptime</canvas></div></div></div>
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Incident Volume</div><div class="lk-card-sub">Monthly count</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body"><div class="chart-wrap" style="height:190px"><canvas id="lk-ict-inc-chart" role="img" aria-label="Incident count">Jan 4, Feb 7, Mar 2, Apr 9, May 3</canvas></div></div></div>
+        </div>
+        <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">All Classrooms — ICT Status</div><div class="lk-card-sub">Network · Projector · Devices · Teacher assigned today</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body">
+          <table class="lk-table">
+            <thead><tr><th>Room</th><th>Network</th><th>Projector</th><th>Devices</th><th>Teacher today</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>3E-02</td><td><span class="lk-badge lk-g">OK</span></td><td><span class="lk-badge lk-g">OK</span></td><td>38/40</td><td>Ms Tan P1</td><td><span class="lk-badge lk-g">Ready</span></td></tr>
+              <tr><td>2A-01</td><td><span class="lk-badge lk-g">OK</span></td><td><span class="lk-badge lk-g">OK</span></td><td>28/28</td><td>Ms Tan P3</td><td><span class="lk-badge lk-g">Ready</span></td></tr>
+              <tr><td>1B-03</td><td><span class="lk-badge lk-y">Slow</span></td><td><span class="lk-badge lk-g">OK</span></td><td>36/36</td><td>Ms Tan P5</td><td><span class="lk-badge lk-y">Issue</span></td></tr>
+              <tr><td>3A-01</td><td><span class="lk-badge lk-g">OK</span></td><td><span class="lk-badge lk-r">Fault</span></td><td>37/38</td><td>Ms Tan P7</td><td><span class="lk-badge lk-r">Action now</span></td></tr>
+              <tr><td>Comp Lab 1</td><td><span class="lk-badge lk-g">OK</span></td><td><span class="lk-badge lk-g">OK</span></td><td>39/40</td><td>—</td><td><span class="lk-badge lk-g">Ready</span></td></tr>
+              <tr><td>Staff Room</td><td><span class="lk-badge lk-r">Down</span></td><td><span class="lk-badge lk-g">OK</span></td><td>12/12</td><td>Staff</td><td><span class="lk-badge lk-r">Down</span></td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </div>
+
+      <div id="li-assets" class="lk-page">
+        <div class="lk-metrics" style="margin-bottom:24px">
+          <div class="lk-metrics-row" style="grid-template-columns:repeat(4,1fr)">
+            <div class="lk-metric"><div class="lk-metric-lbl">Healthy Devices</div><div class="lk-metric-val" style="color:var(--g-green)">58</div><div class="lk-metric-trend up">▲ &lt;3 years old</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Ageing Devices</div><div class="lk-metric-val">28</div><div class="lk-metric-trend warn">► 3–5 years</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">EOL Devices</div><div class="lk-metric-val" style="color:var(--g-red)">14</div><div class="lk-metric-trend down">▼ &gt;5 years</div></div>
+            <div class="lk-metric" style="border-right:none"><div class="lk-metric-lbl">Idle M365 Licences</div><div class="lk-metric-val" style="color:#E37400">4</div><div class="lk-metric-trend warn">► &gt;30 days unused</div></div>
+          </div>
+        </div>
+        <div class="lk-grid lk-g2">
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Device Fleet Health</div><div class="lk-card-sub">100 devices total</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body"><div class="chart-wrap" style="height:190px"><canvas id="lk-fleet-chart" role="img" aria-label="Fleet health donut">Healthy 58, Ageing 28, EOL 14</canvas></div></div></div>
+          <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">M365 App Adoption</div><div class="lk-card-sub">% of teachers active — past 30 days</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body"><div class="chart-wrap" style="height:190px"><canvas id="lk-ict-app-chart" role="img" aria-label="M365 adoption bar">Teams 88, OneDrive 74, Outlook 91, SharePoint 52, Forms 45, OneNote 38</canvas></div></div></div>
+        </div>
+      </div>
+
+      <div id="li-adoption" class="lk-page">
+        <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">Google Workspace — Class Engagement</div><div class="lk-card-sub">Login · Task completion · Collaboration by class</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body">
+          <table class="lk-table">
+            <thead><tr><th>Class</th><th>Teacher</th><th>Login rate</th><th>Task completion</th><th>Collab rate</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Sec 2A</td><td>Mr Lim</td><td>96%</td><td>91%</td><td>80%</td><td><span class="lk-badge lk-g">Excellent</span></td></tr>
+              <tr><td>Sec 1A</td><td>Mr Chan</td><td>94%</td><td>88%</td><td>72%</td><td><span class="lk-badge lk-g">Good</span></td></tr>
+              <tr><td>Sec 3A</td><td>Ms Tan</td><td>91%</td><td>85%</td><td>76%</td><td><span class="lk-badge lk-g">Good</span></td></tr>
+              <tr><td>Sec 1B</td><td>Mr Chan</td><td>88%</td><td>82%</td><td>68%</td><td><span class="lk-badge lk-y">Monitor</span></td></tr>
+              <tr><td>Sec 3B</td><td>Ms Ng</td><td>85%</td><td>78%</td><td>64%</td><td><span class="lk-badge lk-y">Monitor</span></td></tr>
+              <tr><td style="font-weight:500">Sec 2B</td><td>Ms Lee</td><td style="color:var(--g-red);font-weight:500">79%</td><td style="color:var(--g-red);font-weight:500">70%</td><td style="color:var(--g-red);font-weight:500">55%</td><td><span class="lk-badge lk-r">Investigate</span></td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </div>
+
+      <div id="li-watch" class="lk-page">
+        <div class="lk-metrics" style="margin-bottom:24px">
+          <div class="lk-metrics-row" style="grid-template-columns:repeat(4,1fr)">
+            <div class="lk-metric"><div class="lk-metric-lbl">ICT Readiness</div><div class="lk-metric-val" style="color:#E37400">83<span style="font-size:16px">/100</span></div><div class="lk-metric-trend warn">► target 85 · gap 2pts</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Teacher Adoption</div><div class="lk-metric-val">86<span style="font-size:16px">%</span></div><div class="lk-metric-trend up">▲ target 90%</div></div>
+            <div class="lk-metric"><div class="lk-metric-lbl">Student Engagement</div><div class="lk-metric-val">88<span style="font-size:16px">%</span></div><div class="lk-metric-trend up">▲ target 90%</div></div>
+            <div class="lk-metric" style="border-right:none"><div class="lk-metric-lbl">Network Uptime</div><div class="lk-metric-val" style="color:var(--g-green)">99.7<span style="font-size:14px">%</span></div><div class="lk-metric-trend up">▲ SLA met</div></div>
+          </div>
+        </div>
+        <div class="lk-card"><div class="lk-card-head"><div><div class="lk-card-title">ICT Readiness — What's Dragging It Below 85</div><div class="lk-card-sub">Current score 83 · Target 85 · ICT Manager action plan</div></div><div class="lk-card-menu">⋮</div></div><div class="lk-card-body">
+          <table class="lk-table">
+            <thead><tr><th>Factor</th><th>Current</th><th>Target</th><th>Score impact</th><th>ICT action</th></tr></thead>
+            <tbody>
+              <tr><td style="font-weight:500">Device EOL (14 of 100)</td><td style="color:var(--g-red);font-weight:500">14%</td><td>&lt;10%</td><td><span class="lk-badge lk-r">−3 pts</span></td><td style="font-size:12px">Raise procurement request to school leader</td></tr>
+              <tr><td style="font-weight:500">SharePoint adoption</td><td style="color:#E37400;font-weight:500">52%</td><td>70%</td><td><span class="lk-badge lk-y">−2 pts</span></td><td style="font-size:12px">Schedule CPD session with HOD</td></tr>
+              <tr><td style="font-weight:500">April uptime incidents</td><td style="color:#E37400;font-weight:500">97.8%</td><td>99.5%</td><td><span class="lk-badge lk-y">−1 pt</span></td><td style="font-size:12px">Submit zone 1B incident report</td></tr>
+              <tr><td style="font-weight:500">Teams adoption</td><td style="color:var(--g-green);font-weight:500">88%</td><td>85%</td><td><span class="lk-badge lk-g">+2 pts</span></td><td style="font-size:12px">Maintain · highlight in SLT report</td></tr>
+              <tr><td style="font-weight:500">Outlook adoption</td><td style="color:var(--g-green);font-weight:500">91%</td><td>85%</td><td><span class="lk-badge lk-g">+2 pts</span></td><td style="font-size:12px">Maintain · no action needed</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </div>
+
+    </div><!-- end content -->
+  </div><!-- end main -->
+</div><!-- end shell -->
+
+<script>
+let lkPersona = 'teacher';
+const allPages = ['lp-overview','lp-m365','lp-google','lp-ict','lt-today','lt-classes','lt-workload','lt-ict','li-queue','li-infra','li-assets','li-adoption','li-watch'];
+
+function lkSelectPersona(p) {
+  lkPersona = p;
+  ['principal','teacher','ictmgr'].forEach(id => document.getElementById('lp-'+id).classList.toggle('sel',id===p));
+  const em = {principal:'ashraf@amkss.edu.sg',teacher:'tanwl@amkss.edu.sg',ictmgr:'rajan@amkss.edu.sg'};
+  document.getElementById('lk-email').value = em[p];
+}
+
+function lkLogin() {
+  document.getElementById('lk-login').style.display='none';
+  const shell = document.getElementById('lk-shell');
+  shell.style.display='flex'; shell.classList.add('active');
+  ['principal','teacher','ictmgr'].forEach(id=>{ document.getElementById('lk-nav-'+id).style.display='none'; });
+  document.getElementById('lk-nav-'+lkPersona).style.display='block';
+  const users={principal:{name:'Mr Ashraf Maniam',role:'School Leader',init:'AM'},teacher:{name:'Ms Tan Wei Ling',role:'Teacher · Mathematics',init:'TW'},ictmgr:{name:'Mr Rajan Kumar',role:'ICT Manager',init:'RK'}};
+  const u=users[lkPersona];
+  document.getElementById('lk-avatar').textContent=u.init;
+  document.getElementById('lk-user-name').textContent=u.name;
+  document.getElementById('lk-user-role').textContent=u.role;
+  const firstPage={principal:'lp-overview',teacher:'lt-today',ictmgr:'li-queue'};
+  allPages.forEach(id=>{ const el=document.getElementById(id); if(el){el.classList.remove('active');el.style.display='none';} });
+  const fp=document.getElementById(firstPage[lkPersona]);
+  fp.classList.add('active'); fp.style.display='block';
+  const titles={principal:'Overview',teacher:'Today',ictmgr:'Ticket Queue'};
+  document.getElementById('lk-page-title').textContent=titles[lkPersona];
+  setTimeout(initLkCharts,100);
+}
+
+function lkLogout() {
+  document.getElementById('lk-shell').style.display='none';
+  document.getElementById('lk-shell').classList.remove('active');
+  document.getElementById('lk-login').style.display='flex';
+  lkChartsInited={};
+  lkChartInstances={};
+}
+
+function lkNav(id,btn) {
+  allPages.forEach(p=>{ const el=document.getElementById(p); if(el){el.classList.remove('active');el.style.display='none';} });
+  const el=document.getElementById(id);
+  el.classList.add('active'); el.style.display='block';
+  const navItems=document.querySelectorAll('.lk-nav-item');
+  navItems.forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const titleMap={'lp-overview':'Overview','lp-m365':'Microsoft 365','lp-google':'Google Workspace','lp-ict':'ICT Facilities','lt-today':'Today','lt-classes':'My Classes','lt-workload':'Workload','lt-ict':'ICT Status','li-queue':'Ticket Queue','li-infra':'Infrastructure','li-assets':'Assets & Licences','li-adoption':'Adoption Gaps','li-watch':'School Leader Watch'};
+  document.getElementById('lk-page-title').textContent=titleMap[id]||id;
+  const lazyCharts={'lp-m365':['lk-app-chart','msa'],'lp-ict':['lk-uptime-chart','upt','lk-incident-chart','inc'],'lt-classes':['lk-submit-chart','sub','lk-compare-chart','cmp'],'li-infra':['lk-ict-uptime-chart','iupt','lk-ict-inc-chart','iinc'],'li-assets':['lk-fleet-chart','flt','lk-ict-app-chart','iapp']};
+  if(lazyCharts[id]) setTimeout(()=>{
+    for(let i=0;i<lazyCharts[id].length;i+=2)initLkChart(lazyCharts[id][i],lazyCharts[id][i+1]);
+    if(typeof lkFilterByPlatform==='function') lkFilterByPlatform(lkFilterState.platform);
+    if(typeof lkFilterByClass==='function') lkFilterByClass(lkFilterState.class);
+  },80);
+}
+
+const G={blue:'#1A73E8',green:'#34A853',red:'#EA4335',yellow:'#FBBC04',teal:'#00897B',muted:'#5F6368'};
+const gridG='rgba(218,220,224,0.5)'; const noLegG={display:false};
+let lkChartsInited={};
+let lkChartInstances={};
+function initLkChart(id,type){
+  if(lkChartsInited[id])return; const el=document.getElementById(id); if(!el)return;
+  lkChartsInited[id]=true;
+  if(type==='adopt')new Chart(el,{type:'line',data:{labels:['W1','W2','W3','W4','W5','W6','W7','W8'],datasets:[{label:'Active %',data:[62,70,68,75,80,78,85,88],borderColor:G.blue,backgroundColor:'rgba(26,115,232,0.06)',borderWidth:2,pointRadius:3,pointBackgroundColor:G.blue,tension:0.35,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:noLegG},scales:{x:{grid:{display:false},ticks:{color:G.muted}},y:{min:50,max:100,grid:{color:gridG},ticks:{color:G.muted,callback:v=>v+'%'}}}}});
+  if(type==='dev')new Chart(el,{type:'doughnut',data:{labels:['Healthy','Ageing','EOL'],datasets:[{data:[58,28,14],backgroundColor:[G.green,G.yellow,G.red],borderWidth:0,cutout:'68%'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:G.muted}}}}});
+  if(type==='msa')lkChartInstances['msa']=new Chart(el,{type:'bar',data:{labels:['Teams','OneDrive','Outlook','SharePoint','Forms','OneNote'],datasets:[{label:'Adoption %',data:[88,74,91,52,45,38],backgroundColor:d=>[88,74,91,52,45,38][d.dataIndex]>=75?G.green:[88,74,91,52,45,38][d.dataIndex]>=60?G.yellow:G.red,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:noLegG},scales:{x:{min:0,max:100,grid:{color:gridG},ticks:{color:G.muted,callback:v=>v+'%'}},y:{grid:{display:false},ticks:{color:G.muted}}}}});
+  if(type==='cls')lkChartInstances['cls']=new Chart(el,{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May'],datasets:[{label:'Assigned',data:[48,55,60,52,65],backgroundColor:'rgba(218,220,224,0.8)',borderRadius:4},{label:'Submitted',data:[40,50,57,49,61],backgroundColor:G.blue,borderRadius:4},{label:'On Time',data:[35,46,53,45,58],backgroundColor:G.green,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:G.muted}}},scales:{x:{grid:{display:false},ticks:{color:G.muted}},y:{grid:{color:gridG},ticks:{color:G.muted}}}}});
+  if(type==='upt')new Chart(el,{type:'line',data:{labels:['Jan','Feb','Mar','Apr','May'],datasets:[{label:'Uptime %',data:[99.1,98.4,99.5,97.8,99.7],borderColor:G.green,backgroundColor:'rgba(52,168,83,0.06)',borderWidth:2,pointRadius:4,tension:0.3,fill:true},{label:'SLA 99.5%',data:[99.5,99.5,99.5,99.5,99.5],borderColor:'#DADCE0',borderWidth:1.5,borderDash:[5,4],pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:G.muted}}},scales:{x:{grid:{display:false},ticks:{color:G.muted}},y:{min:96,max:100.5,grid:{color:gridG},ticks:{color:G.muted,callback:v=>v+'%'}}}}});
+  if(type==='inc')new Chart(el,{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May'],datasets:[{label:'Incidents',data:[4,7,2,9,3],backgroundColor:d=>[4,7,2,9,3][d.dataIndex]>6?G.red:[4,7,2,9,3][d.dataIndex]>3?G.yellow:G.green,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:noLegG},scales:{x:{grid:{display:false},ticks:{color:G.muted}},y:{grid:{color:gridG},ticks:{color:G.muted}}}}});
+  if(type==='sub')new Chart(el,{type:'line',data:{labels:['W1','W2','W3','W4','W5','W6','W7','W8'],datasets:[{label:'Submit %',data:[74,78,72,83,88,85,91,89],borderColor:G.blue,backgroundColor:'rgba(26,115,232,0.06)',borderWidth:2,pointRadius:3,tension:0.35,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:noLegG},scales:{x:{grid:{display:false},ticks:{color:G.muted}},y:{min:60,max:100,grid:{color:gridG},ticks:{color:G.muted,callback:v=>v+'%'}}}}});
+  if(type==='cmp')new Chart(el,{type:'bar',data:{labels:['3E Maths','2A Maths','1B Maths','3A Maths'],datasets:[{label:'Avg Score',data:[72,81,64,85],backgroundColor:G.teal,borderRadius:4},{label:'Submit %',data:[89,94,78,97],backgroundColor:G.blue,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:G.muted}}},scales:{x:{grid:{display:false},ticks:{color:G.muted,font:{size:10}}},y:{min:0,max:100,grid:{color:gridG},ticks:{color:G.muted}}}}});
+  if(type==='res')new Chart(el,{type:'line',data:{labels:['Jan','Feb','Mar','Apr','May'],datasets:[{label:'Avg hrs',data:[1.8,2.1,1.9,3.2,3.4],borderColor:G.yellow,backgroundColor:'rgba(251,188,4,0.06)',borderWidth:2,pointRadius:4,tension:0.3,fill:true},{label:'Target 2h',data:[2,2,2,2,2],borderColor:'#DADCE0',borderWidth:1.5,borderDash:[5,4],pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:G.muted}}},scales:{x:{grid:{display:false},ticks:{color:G.muted}},y:{min:0,max:4,grid:{color:gridG},ticks:{color:G.muted,callback:v=>v+'h'}}}}});
+  if(type==='cat')new Chart(el,{type:'doughnut',data:{labels:['Network','Devices','Projectors','Software','Other'],datasets:[{data:[32,28,18,14,8],backgroundColor:[G.blue,G.yellow,G.red,G.teal,'#DADCE0'],borderWidth:0,cutout:'62%'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:G.muted}}}}});
+  if(type==='iupt')new Chart(el,{type:'line',data:{labels:['Jan','Feb','Mar','Apr','May'],datasets:[{label:'Uptime %',data:[99.1,98.4,99.5,97.8,99.7],borderColor:G.green,borderWidth:2,pointRadius:4,tension:0.3},{label:'SLA',data:[99.5,99.5,99.5,99.5,99.5],borderColor:'#DADCE0',borderWidth:1.5,borderDash:[5,4],pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:G.muted}}},scales:{x:{grid:{display:false},ticks:{color:G.muted}},y:{min:96,max:100.5,grid:{color:gridG},ticks:{color:G.muted,callback:v=>v+'%'}}}}});
+  if(type==='iinc')new Chart(el,{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May'],datasets:[{label:'Incidents',data:[4,7,2,9,3],backgroundColor:d=>[4,7,2,9,3][d.dataIndex]>6?G.red:[4,7,2,9,3][d.dataIndex]>3?G.yellow:G.green,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:noLegG},scales:{x:{grid:{display:false},ticks:{color:G.muted}},y:{grid:{color:gridG},ticks:{color:G.muted}}}}});
+  if(type==='flt')new Chart(el,{type:'doughnut',data:{labels:['Healthy','Ageing','EOL'],datasets:[{data:[58,28,14],backgroundColor:[G.green,G.yellow,G.red],borderWidth:0,cutout:'68%'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:G.muted}}}}});
+  if(type==='iapp')new Chart(el,{type:'bar',data:{labels:['Teams','OneDrive','Outlook','SharePoint','Forms','OneNote'],datasets:[{label:'Adoption %',data:[88,74,91,52,45,38],backgroundColor:d=>[88,74,91,52,45,38][d.dataIndex]>=75?G.green:[88,74,91,52,45,38][d.dataIndex]>=60?G.yellow:G.red,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:noLegG},scales:{x:{min:0,max:100,grid:{color:gridG},ticks:{color:G.muted,callback:v=>v+'%'}},y:{grid:{display:false},ticks:{color:G.muted}}}}});
+}
+
+function initLkCharts(){
+  initLkChart('lk-adopt-chart','adopt');
+  initLkChart('lk-device-chart','dev');
+  initLkChart('lk-classroom-chart','cls');
+  initLkChart('lk-restime-chart','res');
+  initLkChart('lk-cat-chart','cat');
+}
+
+/* ── PER-CLASS DATA (drives real filtering on Overview + My Classes pages) ── */
+const lkClassData = {
+  'Sec 1A': {engagement:91, assigned:[40,46,50,44,54], submitted:[37,43,47,41,51], onTime:[33,39,43,37,47]},
+  'Sec 1B': {engagement:82, assigned:[38,44,48,42,52], submitted:[33,38,42,36,46], onTime:[28,33,37,31,41]},
+  'Sec 2A': {engagement:96, assigned:[44,50,55,48,58], submitted:[42,48,53,46,56], onTime:[39,45,50,43,53]},
+  'Sec 2B': {engagement:79, assigned:[42,48,52,46,56], submitted:[33,38,41,36,46], onTime:[26,31,34,29,39]},
+  'Sec 2E': {engagement:90, assigned:[45,51,56,49,59], submitted:[42,47,52,45,55], onTime:[38,43,48,41,51]},
+  'Sec 3A': {engagement:91, assigned:[46,52,57,50,60], submitted:[43,49,54,47,57], onTime:[40,46,51,44,54]},
+  'Sec 3E': {engagement:85, assigned:[50,56,61,54,64], submitted:[45,51,56,49,59], onTime:[41,47,52,45,55]},
+};
+const lkAllClassesAvg = {engagement:88, assigned:[48,55,60,52,65], submitted:[40,50,57,49,61], onTime:[35,46,53,45,58]};
+
+/* ── PER-PLATFORM DATA for M365 app adoption chart ── */
+const lkPlatformData = {
+  'All Platforms': {labels:['Teams','OneDrive','Outlook','SharePoint','Forms','OneNote'], data:[88,74,91,52,45,38]},
+  'Microsoft 365': {labels:['Teams','OneDrive','Outlook','SharePoint','Forms','OneNote'], data:[88,74,91,52,45,38]},
+  'Google Workspace': {labels:['Classroom','Drive','Gmail','Docs','Sheets','Meet'], data:[82,79,85,68,55,71]},
+  'SLS': {labels:['LEA','ALS','SAFA','SET'], data:[64,58,49,36]},
+};
+
+/* ── TOP-BAR FILTER DROPDOWNS ── */
+const lkFilterState = {term:'Term 2 2025', class:'All Classes', room:'All Rooms', platform:'All Platforms'};
+const lkFilterDefaults = {term:'Term 2 2025', class:'All Classes', room:'All Rooms', platform:'All Platforms'};
+
+function lkToggleFilter(evt,name){
+  evt.stopPropagation();
+  const menu = document.getElementById('lk-menu-'+name);
+  const isOpen = menu.classList.contains('open');
+  document.querySelectorAll('.lk-filter-menu').forEach(m=>m.classList.remove('open'));
+  if(!isOpen) menu.classList.add('open');
+}
+
+function lkPickFilter(name,label,optEl){
+  lkFilterState[name] = label;
+  document.querySelectorAll('#lk-menu-'+name+' .lk-filter-opt').forEach(o=>o.classList.remove('sel'));
+  optEl.classList.add('sel');
+  const chip = document.getElementById('lk-chip-'+name);
+  chip.textContent = label + ' ▾';
+  chip.classList.toggle('active', label !== lkFilterDefaults[name]);
+  document.getElementById('lk-menu-'+name).classList.remove('open');
+  lkApplyFilters();
+}
+
+function lkApplyFilters(){
+  const parts=[];
+  if(lkFilterState.term!==lkFilterDefaults.term) parts.push(lkFilterState.term);
+  if(lkFilterState.class!==lkFilterDefaults.class) parts.push(lkFilterState.class);
+  if(lkFilterState.room!==lkFilterDefaults.room) parts.push(lkFilterState.room);
+  if(lkFilterState.platform!==lkFilterDefaults.platform) parts.push(lkFilterState.platform);
+  const now=new Date(); const hh=String(now.getHours()).padStart(2,'0'); const mm=String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('lk-refresh-lbl').textContent = 'Refreshed: '+hh+':'+mm+' today';
+  lkToast(parts.length ? 'Filters applied — '+parts.join(', ') : 'Filters reset to default');
+
+  lkFilterByClass(lkFilterState.class);
+  lkFilterByPlatform(lkFilterState.platform);
+}
+
+function lkFilterByClass(className){
+  const selected = className !== 'All Classes';
+  const data = selected && lkClassData[className] ? lkClassData[className] : lkAllClassesAvg;
+
+  // Highlight / dim rows in the Class Engagement table (My Classes page)
+  const rows = document.querySelectorAll('#lk-engagement-tbody tr');
+  rows.forEach(row=>{
+    const rowClass = row.getAttribute('data-class');
+    if(!selected){ row.style.opacity='1'; row.style.background=''; }
+    else if(rowClass===className){ row.style.opacity='1'; row.style.background='var(--g-blue-bg)'; }
+    else { row.style.opacity='0.35'; row.style.background=''; }
+  });
+
+  // Update Classroom Activity chart (Overview + My Classes pages)
+  if(lkChartInstances['cls']){
+    const chart = lkChartInstances['cls'];
+    chart.data.datasets[0].data = data.assigned;
+    chart.data.datasets[1].data = data.submitted;
+    chart.data.datasets[2].data = data.onTime;
+    chart.update();
+  }
+  const subEl = document.getElementById('lk-classroom-sub');
+  if(subEl) subEl.textContent = selected ? `${className} · Assigned vs Submitted vs On-Time · Jan–May` : 'Assigned vs Submitted vs On-Time · Jan–May';
+
+  // Update Student Engagement metric tile (Overview)
+  const valEl = document.getElementById('lk-engagement-val');
+  const trendEl = document.getElementById('lk-engagement-trend');
+  if(valEl){
+    valEl.innerHTML = data.engagement + '<span style="font-size:16px">%</span>';
+    const delta = data.engagement - lkAllClassesAvg.engagement;
+    if(trendEl){
+      if(!selected){ trendEl.className='lk-metric-trend up'; trendEl.textContent='▲ +4% this month'; }
+      else if(delta < 0){ trendEl.className='lk-metric-trend down'; trendEl.textContent=`▼ ${delta}pts vs school avg`; }
+      else { trendEl.className='lk-metric-trend up'; trendEl.textContent=`▲ +${delta}pts vs school avg`; }
+    }
+  }
+
+  // Update Action Items card subtitle to reflect the class scope
+  const actSub = document.getElementById('lk-actionitems-sub');
+  if(actSub) actSub.textContent = selected ? `Flagged for school leader review · ${className}` : 'Flagged for school leader review';
+}
+
+function lkFilterByPlatform(platform){
+  if(!lkChartInstances['msa']) return;
+  const pdata = lkPlatformData[platform] || lkPlatformData['All Platforms'];
+  const chart = lkChartInstances['msa'];
+  chart.data.labels = pdata.labels;
+  chart.data.datasets[0].data = pdata.data;
+  chart.update();
+}
+
+let lkToastTimer=null;
+function lkToast(msg){
+  let t=document.getElementById('lk-toast-el');
+  if(!t){ t=document.createElement('div'); t.id='lk-toast-el'; t.className='lk-toast'; document.body.appendChild(t); }
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(lkToastTimer);
+  lkToastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+document.addEventListener('click',()=>{ document.querySelectorAll('.lk-filter-menu').forEach(m=>m.classList.remove('open')); });
+
+</script>
+</body>
+</html>
